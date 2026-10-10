@@ -4,6 +4,7 @@ La skill le pide al agente que copie ese script "tal cual": si el bloque deja de
 la skill entera falla en silencio. Run: python -m unittest discover tests
 """
 import json
+import os
 import re
 import subprocess
 import sys
@@ -73,6 +74,25 @@ class TestCheckBaseline(unittest.TestCase):
         (repo / "package.json").write_text(json.dumps({"name": "x", "dependencies": {"next": "15", "mercadopago": "2"}}), encoding="utf-8")
         out = json.dumps(self.run_check(repo)).lower()
         self.assertTrue("node" in out or "next" in out, out[:400])
+
+
+class TestDrift(unittest.TestCase):
+    def run_drift(self, base: Path):
+        env = {**os.environ, "CLAUDE_CONFIG_DIR": str(base)}
+        return subprocess.run([sys.executable, "-X", "utf8", str(ROOT / "tools" / "drift.py")],
+                              capture_output=True, text=True, encoding="utf-8", env=env)
+
+    def test_detects_identical_and_drifted_copies(self):
+        base = Path(tempfile.mkdtemp())
+        synced = base / "skills" / "synced" / "abc" / "repo-baseline"
+        synced.mkdir(parents=True)
+        (synced / "SKILL.md").write_bytes((ROOT / "SKILL.md").read_bytes())
+        r = self.run_drift(base)
+        self.assertEqual(r.returncode, 0, r.stdout)
+        (synced / "SKILL.md").write_text("editado en claude.ai", encoding="utf-8")
+        r = self.run_drift(base)
+        self.assertEqual(r.returncode, 1, r.stdout)
+        self.assertIn("DISTINTA", r.stdout)
 
 
 if __name__ == "__main__":

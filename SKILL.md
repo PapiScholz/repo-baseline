@@ -1,6 +1,6 @@
 ---
 name: "repo-baseline"
-description: "Deja repos, sitios o software nuevos con su documentación mínima adaptada al proyecto (README, ARCHITECTURE, ADRs, DESIGN, legales AR, SECURITY, LICENSE, .gitignore/.gitattributes) y verifica qué falta."
+description: "Deja repos, sitios o software nuevos con su documentación mínima adaptada al proyecto (README, ARCHITECTURE, ADRs, DESIGN, legales AR, SECURITY, LICENSE, .gitignore/.gitattributes/.editorconfig y, en repos públicos u open source, CONTRIBUTING, CODE_OF_CONDUCT, plantillas de issues y PRs y CHANGELOG) y verifica qué falta."
 ---
 
 # repo-baseline
@@ -21,9 +21,17 @@ Objetivo: que todo repo nazca con un set mínimo de documentación **escrita par
 | `TERMS.md` | Si hay usuarios finales o venta | Según la jurisdicción |
 | Botón de arrepentimiento | Si vende online en Argentina | Requisito de UI, no solo de docs |
 | `SECURITY.md` | Siempre | Cómo reportar, qué datos se manejan, secretos y su rotación |
-| `LICENSE.md` | Siempre | Según el titular. Default: propietario, "All rights reserved" |
+| `LICENSE.md` | Siempre | Según el titular. Default: propietario, "All rights reserved". Si es público u open source: la licencia OSI que elija el usuario, con su texto oficial completo |
 | `.gitignore` | Siempre | Del stack real detectado |
 | `.gitattributes` | Siempre | `* text=auto eol=lf` más los binarios y excepciones CRLF |
+| `.editorconfig` | Siempre | Charset, fin de línea e indentación coherentes con `.gitattributes` y el estilo real del código |
+| `CONTRIBUTING.md` | Si es público u open source | Cómo reportar bugs, los chequeos reales a correr antes de un PR y las reglas del repo |
+| `CODE_OF_CONDUCT.md` | Si es público u open source | Texto **oficial** del Contributor Covenant, descargado (nunca de memoria) y con el contacto completado |
+| `.github/PULL_REQUEST_TEMPLATE.md` | Si es público u open source en GitHub | Checklist con los chequeos reales del repo |
+| `.github/ISSUE_TEMPLATE/` | Si es público u open source en GitHub | `bug_report.md` con los datos que hacen falta para reproducir, y `config.yml` que manda las vulnerabilidades al canal privado |
+| `CHANGELOG.md` | Si publica versiones (campo `version`, tags de git) | Formato Keep a Changelog, con las versiones reales |
+| `CODEOWNERS` | Si hay más de un mantenedor | Quién revisa cada carpeta |
+| Reporte privado de vulnerabilidades | Si es público en GitHub | Es una configuración del repo, no un archivo: queda como `pendiente` en la tabla final con cómo activarlo |
 
 Los esqueletos de cada documento están en el **Apéndice C**. Leelo antes de redactar.
 
@@ -53,6 +61,7 @@ Candidatas, incluidas solo si no se pudieron inferir:
 - **¿Maneja datos personales?** Formularios, cuentas, newsletter, analytics con identificadores, etc.
 - **¿El diseño UX/UI está definido?** Si no, DESIGN.md queda como pendiente.
 - **¿Dónde se despliega?** Solo si no hay config de deploy en el repo.
+- **¿Es público u open source?** Define los archivos de comunidad (CONTRIBUTING, CODE_OF_CONDUCT, plantillas) y la licencia. Se infiere de una licencia OSI en `LICENSE` (el check lo reporta como `assumed.public`) o de `gh repo view --json visibility`; si no hay ninguna de las dos, se pregunta.
 
 Si las señales del check ya responden algo (por ejemplo, `mercadopago` en las dependencias indica que vende online), presentalo como opción preseleccionada para que el usuario confirme, en lugar de preguntarlo de cero.
 
@@ -73,6 +82,8 @@ Reglas que importan, con su porqué:
 - **Las decisiones no se fabrican.** En el ADR 0001, el contexto y la decisión salen de la evidencia del repo. Si el usuario no dio las alternativas descartadas, podés proponer las obvias, pero marcalas `(sugerido — confirmar)` para que no pasen por hechos.
 - **Fuentes en los ADRs:** links a la documentación oficial de las tecnologías elegidas. Solo URLs que existan; si no podés verificar una, no la pongas.
 - **Idioma:** el que use el usuario o el del README existente. Los nombres de archivo van en inglés y mayúsculas, como en la tabla.
+- **Textos normativos de terceros, descargados.** El Code of Conduct (y cualquier licencia OSI) se baja de su fuente oficial y se copia tal cual; solo se completan sus placeholders (por ejemplo `[INSERT CONTACT METHOD]`). No se reconstruye de memoria ni se traduce: si hace falta otro idioma y no hay traducción oficial a mano, el archivo en ese idioma resume y enlaza al texto que rige. Ver Apéndice C.
+- **Los chequeos de CONTRIBUTING y de la plantilla de PR son los reales.** Salen del CI y de los scripts del repo; un comando que no existe en el repo no va.
 - **Botón de arrepentimiento:** además de documentarlo en TERMS.md, buscá en el código si ya existe (el check lo reporta). Si no existe, agregá una fila "pendiente de implementación en UI" en la tabla final con los requisitos del Apéndice A. No lo implementes salvo que el usuario lo pida: es código de producto, no documentación.
 
 ### 5. Archivos que ya existen: diff, nunca sobrescribir
@@ -86,10 +97,12 @@ Si un archivo del baseline ya existe, no lo pises. Leelo, armá la versión mejo
 Corré el check de nuevo, ahora en modo tabla, con los flags que correspondan según las respuestas:
 
 ```bash
-python <tmp>/check_baseline.py <repo> --[no-]sells-online --[no-]personal-data --[no-]ui-defined --jurisdiction AR
+python <tmp>/check_baseline.py <repo> --[no-]sells-online --[no-]personal-data --[no-]ui-defined --[no-]public --jurisdiction AR
 ```
 
 Pasá siempre las respuestas confirmadas como flags, incluidas las negativas. Sin flags, el script adivina a partir de señales del código (por ejemplo, una integración con WooCommerce parece venta online aunque no lo sea), y esa adivinanza no debe pisar lo que dijo el usuario.
+
+`CODEOWNERS` y el reporte privado de vulnerabilidades no los verifica el script: revisalos a mano si aplican.
 
 Si reporta faltantes que deberías haber creado, resolvelos antes de cerrar.
 
@@ -103,6 +116,8 @@ Terminá **siempre** con esta tabla, una fila por archivo del baseline:
 | LICENSE.md | creado | TODO-LEGAL: razón social del titular |
 | PRIVACY.md | diff propuesto | Esperando OK |
 | DESIGN.md | pendiente | Diseño UX/UI no definido; anotado en README |
+| CODE_OF_CONDUCT.md | creado | Confirmar el contacto para reportes |
+| Reporte privado de vulnerabilidades | pendiente | Activarlo: Settings → Security → Private vulnerability reporting, o `gh api -X PUT repos/<owner>/<repo>/private-vulnerability-reporting` |
 
 Estados válidos: `creado`, `actualizado`, `diff propuesto`, `pendiente`, `no aplica`.
 
@@ -114,6 +129,7 @@ Debajo, la lista consolidada de **todos** los `TODO-LEGAL` con archivo y dato, p
 - No instales dependencias ni modifiques código de la app.
 - El alcance es solo documentación: no audites ni comentes el código de la app (vulnerabilidades, bugs, versiones). Las únicas excepciones son las que cubre el propio baseline: `.env` sin ignorar en `.gitignore` y la presencia o ausencia del botón de arrepentimiento.
 - No borres archivos.
+- No cambies configuraciones del repo remoto (visibilidad, reporte de vulnerabilidades, protección de ramas): se dejan como `pendiente` en la tabla, con el comando, para que las aplique el usuario.
 
 ---
 
@@ -211,6 +227,12 @@ Son estructuras, no texto para copiar. Cada sección se llena con datos del repo
 7. LICENSE.md
 8. .gitignore
 9. .gitattributes
+10. .editorconfig
+11. CONTRIBUTING.md
+12. CODE_OF_CONDUCT.md
+13. Plantillas de issues y PRs
+14. CHANGELOG.md
+15. CODEOWNERS
 
 ---
 
@@ -422,6 +444,121 @@ Más lo específico del stack: Node (`node_modules/`, `dist/`, `.next/`, `.verce
 
 Agregá `*.ps1` solo si hay scripts PowerShell; el resto de las extensiones, solo si están en el repo o son típicas del stack.
 
+### 10. .editorconfig
+
+```ini
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 2
+
+[*.md]
+trim_trailing_whitespace = false
+```
+
+Ajustá `indent_size` por extensión al estilo real del código (Python 4, Go con tabs, Makefile con tabs). Si `.gitattributes` fija CRLF para alguna extensión, repetilo acá (`end_of_line = crlf`).
+
+### 11. CONTRIBUTING.md
+
+```markdown
+# Contributing
+
+<Una línea: qué contribuciones son bienvenidas.> Al participar aceptás el
+[Code of Conduct](CODE_OF_CONDUCT.md). Las vulnerabilidades van por el canal
+privado de [SECURITY.md](SECURITY.md), no por issues.
+
+## Reportar un bug
+<qué datos hacen falta para reproducir: versiones, comando, salida; qué tapar (secretos, IPs)>
+
+## Antes de abrir un pull request
+<los comandos reales del CI y de los scripts del repo, en bloque de código>
+<cómo probar un cambio de verdad, si los tests no alcanzan>
+
+## Reglas del repo
+<las reglas que un contribuidor externo podría romper sin saberlo, cada una con su porqué; link a los ADRs>
+
+## Commits y pull requests
+<convención real de commits del repo (mirá `git log`), un tema por PR, CI en verde>
+```
+
+### 12. CODE_OF_CONDUCT.md
+
+No se redacta: se descarga el texto oficial del Contributor Covenant (versión vigente; la 2.1 está en `https://raw.githubusercontent.com/EthicalSource/contributor_covenant/release/content/version/2/1/code_of_conduct.md`).
+
+1. Bajalo a un directorio temporal y leelo entero.
+2. Sacale el bloque de metadatos del principio (`+++ ... +++`) si lo trae.
+3. Reemplazá `[INSERT CONTACT METHOD]` por un canal **privado** de contacto. Si el usuario no dio ninguno, poné el que haya (por ejemplo el perfil de GitHub del mantenedor) y agregá una fila en la tabla final para confirmarlo.
+4. Si no podés descargarlo, no lo escribas de memoria: dejá el archivo como `pendiente` en la tabla, con el link oficial.
+
+Para otro idioma, enlazá la traducción oficial (`https://www.contributor-covenant.org/translations`) desde un archivo corto en ese idioma, que diga que el texto que rige es el del archivo principal.
+
+### 13. Plantillas de issues y PRs
+
+`.github/ISSUE_TEMPLATE/bug_report.md`:
+
+```markdown
+---
+name: Bug report
+about: Algo no funciona como dice la documentación
+labels: bug
+---
+
+**Versiones:** <las que importan para este proyecto: runtime, plataforma, SO>
+**Qué hiciste:** <comando o pasos>
+**Qué esperabas y qué pasó:** <incluí la salida o el error>
+**Contexto:** <config relevante, sin secretos ni datos reales>
+```
+
+`.github/ISSUE_TEMPLATE/config.yml`:
+
+```yaml
+blank_issues_enabled: true
+contact_links:
+  - name: Reportar una vulnerabilidad
+    url: https://github.com/<owner>/<repo>/security/advisories/new
+    about: No abras un issue público: usá el reporte privado.
+```
+
+`.github/PULL_REQUEST_TEMPLATE.md`:
+
+```markdown
+## Qué cambia y por qué
+
+## Cómo lo probaste
+- [ ] <cada chequeo real del CI, uno por línea>
+- [ ] <prueba manual, si el repo la pide en CONTRIBUTING>
+
+## Docs
+- [ ] Actualicé la documentación afectada (y su versión en otro idioma, si existe)
+```
+
+### 14. CHANGELOG.md
+
+Formato [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). Las versiones salen de los tags de git o del campo `version`; no inventes fechas ni entradas: si el historial no alcanza para reconstruir versiones viejas, empezá por la actual.
+
+```markdown
+# Changelog
+
+Todos los cambios notables de este proyecto se documentan en este archivo.
+El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/)
+y el proyecto usa [Semantic Versioning](https://semver.org/lang/es/).
+
+## [Unreleased]
+
+## [<versión>] - <YYYY-MM-DD>
+### Added
+- <lo que agregó esa versión, según los commits o el tag>
+```
+
+### 15. CODEOWNERS
+
+Solo con más de un mantenedor; con uno solo no agrega nada. Va en `.github/CODEOWNERS`, con usuarios o equipos reales (`* @owner`, `/infra/ @team-infra`). Los nombres de usuario no se inventan: si no los dio el usuario, no se crea el archivo.
+
 ---
 
 ## Apéndice D — check_baseline.py
@@ -547,7 +684,8 @@ def scan(repo: Path) -> dict:
         if p.stat().st_size > 1_000_000:
             continue
         text = read(p)
-        low = text.lower()
+        # "actions/checkout" (GitHub Actions) is not a payment checkout.
+        low = text.lower().replace("actions/checkout", "")
         for key, needles in SIGNALS.items():
             if key == "ui":
                 continue
@@ -588,8 +726,37 @@ def find_one(repo: Path, *names: str) -> Path | None:
     return None
 
 
+OSS_LICENSE = re.compile(r"MIT License|Apache License|GNU (?:AFFERO |LESSER )?GENERAL PUBLIC LICENSE"
+                         r"|Mozilla Public License|BSD \d-Clause|Redistribution and use in source and binary"
+                         r"|ISC License|This is free and unencumbered software", re.I)
+
+
+def is_versioned(repo: Path) -> bool:
+    """Publishes versions: a version field in a manifest, git tags, or a CHANGELOG already."""
+    try:
+        if json.loads(read(repo / "package.json") or "{}").get("version"):
+            return True
+    except json.JSONDecodeError:
+        pass
+    for manifest in ("pyproject.toml", "Cargo.toml"):
+        if re.search(r'^\s*version\s*=\s*"', read(repo / manifest), re.M):
+            return True
+    tags = repo / ".git" / "refs" / "tags"
+    if (tags.is_dir() and any(tags.iterdir())) or "refs/tags/" in read(repo / ".git" / "packed-refs"):
+        return True
+    return (repo / "CHANGELOG.md").exists()
+
+
+def dir_state(path: Path) -> str:
+    return "ok" if path.is_dir() and any(path.iterdir()) else "falta"
+
+
 def check(repo: Path, args) -> dict:
     sc = scan(repo)
+    lic = find_one(repo, "LICENSE.md", "LICENSE", "LICENSE.txt")
+    # Public / open source: the user's answer wins; otherwise an OSI license text is the signal.
+    public = args.public if args.public is not None else bool(lic and OSS_LICENSE.search(read(lic)))
+    versioned = is_versioned(repo)
     # User answers win; detected signals are only a fallback guess.
     sells = args.sells_online if args.sells_online is not None else bool(sc["signals"].get("payments"))
     personal = args.personal_data if args.personal_data is not None else \
@@ -604,7 +771,9 @@ def check(repo: Path, args) -> dict:
 
     readme = repo / "README.md"
     add("README.md", True, file_state(readme))
-    add("ARCHITECTURE.md", True, file_state(repo / "ARCHITECTURE.md"))
+    arch = find_one(repo, "ARCHITECTURE.md", "docs/ARCHITECTURE.md")
+    add("ARCHITECTURE.md", True, file_state(arch) if arch else "falta",
+        "en docs/" if arch and arch.parent.name == "docs" else "")
     adr_dir = repo / "docs" / "adr"
     add("docs/adr/0000-template.md", True, file_state(adr_dir / "0000-template.md"))
     first = sorted(adr_dir.glob("0001-*.md")) if adr_dir.is_dir() else []
@@ -646,10 +815,22 @@ def check(repo: Path, args) -> dict:
     if ga.exists():
         ga_state = "ok" if re.search(r"^\*\s+text=auto\s+eol=lf", read(ga), re.M) else "incompleto"
     add(".gitattributes", True, ga_state, "" if ga_state != "incompleto" else "falta '* text=auto eol=lf'")
+    add(".editorconfig", True, "ok" if (repo / ".editorconfig").exists() else "falta")
+
+    # Community files: only for public / open source repos.
+    note = "repo público / open source" if public else ""
+    add("CONTRIBUTING.md", public, file_state(find_one(repo, "CONTRIBUTING.md", ".github/CONTRIBUTING.md", "docs/CONTRIBUTING.md") or repo / "CONTRIBUTING.md"), note)
+    add("CODE_OF_CONDUCT.md", public, file_state(find_one(repo, "CODE_OF_CONDUCT.md", ".github/CODE_OF_CONDUCT.md", "docs/CODE_OF_CONDUCT.md") or repo / "CODE_OF_CONDUCT.md"), note)
+    pr = find_one(repo, ".github/PULL_REQUEST_TEMPLATE.md", ".github/pull_request_template.md",
+                  "PULL_REQUEST_TEMPLATE.md", "docs/PULL_REQUEST_TEMPLATE.md")
+    add(".github/PULL_REQUEST_TEMPLATE.md", public, "ok" if pr else "falta", note)
+    add(".github/ISSUE_TEMPLATE/", public, dir_state(repo / ".github" / "ISSUE_TEMPLATE"), note)
+    add("CHANGELOG.md", versioned, file_state(repo / "CHANGELOG.md"), "publica versiones" if versioned else "")
 
     missing = [i for i in items if i["required"] and i["state"] not in ("ok", "pendiente anotado")]
     return {"repo": str(repo.resolve()), "stack": detect_stack(repo), "jurisdiction": jur,
-            "assumed": {"sells_online": sells, "personal_data": personal, "ui_defined": args.ui_defined},
+            "assumed": {"sells_online": sells, "personal_data": personal, "ui_defined": args.ui_defined,
+                        "public": public, "versioned": versioned},
             "items": items, "missing_count": len(missing), **sc}
 
 
@@ -689,6 +870,8 @@ def main() -> int:
     ap.add_argument("--personal-data", action=argparse.BooleanOptionalAction, default=None,
                     help="override detection (--no-personal-data to deny)")
     ap.add_argument("--ui-defined", action=argparse.BooleanOptionalAction, default=False)
+    ap.add_argument("--public", action=argparse.BooleanOptionalAction, default=None,
+                    help="repo publico / open source (--no-public to deny); default: OSI license detected")
     ap.add_argument("--jurisdiction", default="AR")
     args = ap.parse_args()
     if hasattr(sys.stdout, "reconfigure"):

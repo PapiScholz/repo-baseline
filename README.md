@@ -34,7 +34,11 @@ npx skills add PapiScholz/repo-baseline -g      # 1. instalar (una sola vez por 
 | `PRIVACY.md` | Si maneja datos personales |
 | `TERMS.md` | Si hay usuarios finales o venta |
 | Botón de arrepentimiento | Si vende online en Argentina (requisito de UI, no solo de docs) |
-| `SECURITY.md`, `LICENSE.md`, `.gitignore`, `.gitattributes` | Siempre |
+| `SECURITY.md`, `LICENSE.md`, `.gitignore`, `.gitattributes`, `.editorconfig` | Siempre |
+| `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md` (texto oficial del Contributor Covenant), plantillas de issues y PRs | Si el repo es público u open source |
+| `CHANGELOG.md` (Keep a Changelog) | Si publica versiones |
+| `CODEOWNERS` | Si hay más de un mantenedor |
+| Reporte privado de vulnerabilidades | Si es público en GitHub: queda como pendiente, con el comando para activarlo |
 
 ## Flujo
 
@@ -102,6 +106,7 @@ python -m unittest discover tests
 ```
 
 - La skill le pide al agente que copie `check_baseline.py` tal cual desde el Apéndice D. Si ese bloque se rompe, la skill falla en silencio. Por eso los tests lo extraen de `SKILL.md` y lo corren contra repos de prueba: vacío, con README casi vacío, completo y con stack Node. Se verificó metiendo un error de sintaxis en el bloque: todos los tests dieron rojo.
+- Otros casos: un repo con licencia MIT pide los archivos de comunidad y uno con `--no-public` no; `CHANGELOG.md` solo se pide si el repo publica versiones; `actions/checkout` no cuenta como señal de pagos, y `docs/ARCHITECTURE.md` cuenta como ARCHITECTURE.
 - Otro test verifica que `tools/drift.py` detecte una copia desviada.
 
 ## Licencia
@@ -116,7 +121,8 @@ A Claude Code / claude.ai skill that gives any repository its minimum documentat
 
 - README, ARCHITECTURE and ADRs;
 - DESIGN, when the UI is defined;
-- SECURITY, LICENSE, `.gitignore` and `.gitattributes`;
+- SECURITY, LICENSE, `.gitignore`, `.gitattributes` and `.editorconfig`;
+- for public / open source repos: CONTRIBUTING, CODE_OF_CONDUCT (the official Contributor Covenant text, downloaded), issue and PR templates; CHANGELOG when the project publishes versions;
 - privacy and terms where they apply. Argentina is the default jurisdiction, always confirmed; a generic template covers others.
 
 **Quick start:** `npx skills add PapiScholz/repo-baseline -g`, then ask Claude to "set up the baseline for this repo". It reads the repo before asking anything, asks the rest in a single form, never overwrites existing files (it proposes diffs) and ends with a status table. The skill text is in Spanish. The flow is in the diagram above.

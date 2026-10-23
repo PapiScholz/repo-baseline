@@ -68,6 +68,53 @@ class TestCheckBaseline(unittest.TestCase):
         self.assertNotEqual(s_full[".gitignore"], "incompleto")
         self.assertNotEqual(s_full[".gitattributes"], "incompleto")
 
+    MIT = "MIT License\n\nCopyright (c) 2026 x\n\nPermission is hereby granted, free of charge, " * 3
+
+    def test_open_source_repo_requires_community_files(self):
+        repo = self.tmp / "oss"
+        repo.mkdir()
+        (repo / "LICENSE").write_text(self.MIT, encoding="utf-8")
+        report = self.run_check(repo)
+        s = self.states(report)
+        self.assertTrue(report["assumed"]["public"])
+        for f in ("CONTRIBUTING.md", "CODE_OF_CONDUCT.md", ".github/PULL_REQUEST_TEMPLATE.md",
+                  ".github/ISSUE_TEMPLATE/"):
+            self.assertEqual(s.get(f), "falta", (f, s))
+        self.assertEqual(s.get(".editorconfig"), "falta")
+
+    def test_private_repo_does_not_require_community_files(self):
+        repo = self.tmp / "priv"
+        repo.mkdir()
+        s = self.states(self.run_check(repo, "--no-public"))
+        for f in ("CONTRIBUTING.md", "CODE_OF_CONDUCT.md"):
+            self.assertEqual(s.get(f), "no aplica", (f, s))
+        self.assertEqual(s.get(".editorconfig"), "falta")
+
+    def test_changelog_required_only_when_versioned(self):
+        plain = self.tmp / "nover"
+        plain.mkdir()
+        versioned = self.tmp / "ver"
+        versioned.mkdir()
+        (versioned / "package.json").write_text(json.dumps({"name": "x", "version": "1.2.0"}), encoding="utf-8")
+        self.assertEqual(self.states(self.run_check(plain, "--no-public")).get("CHANGELOG.md"), "no aplica")
+        self.assertEqual(self.states(self.run_check(versioned, "--no-public")).get("CHANGELOG.md"), "falta")
+
+    def test_github_actions_checkout_is_not_a_payment_signal(self):
+        repo = self.tmp / "ci"
+        (repo / ".github" / "workflows").mkdir(parents=True)
+        (repo / ".github" / "workflows" / "lint.yml").write_text(
+            "jobs:\n  a:\n    steps:\n      - uses: actions/checkout@v4\n", encoding="utf-8")
+        report = self.run_check(repo)
+        self.assertNotIn("payments", report["signals"], report["signals"])
+        self.assertFalse(report["assumed"]["sells_online"])
+
+    def test_architecture_under_docs_counts(self):
+        repo = self.tmp / "arch"
+        (repo / "docs").mkdir(parents=True)
+        (repo / "docs" / "ARCHITECTURE.md").write_text("# Arquitectura\n\n" + "Componentes y flujo. " * 30, encoding="utf-8")
+        s = self.states(self.run_check(repo))
+        self.assertEqual(s["ARCHITECTURE.md"], "ok", s)
+
     def test_detects_node_stack(self):
         repo = self.tmp / "node"
         repo.mkdir()
@@ -93,6 +140,18 @@ class TestDrift(unittest.TestCase):
         r = self.run_drift(base)
         self.assertEqual(r.returncode, 1, r.stdout)
         self.assertIn("DISTINTA", r.stdout)
+
+    def test_drift_report_survives_a_cp1252_console(self):
+        # La consola de Windows por defecto no es UTF-8: el reporte no puede crashear al imprimir.
+        base = Path(tempfile.mkdtemp())
+        synced = base / "skills" / "synced" / "abc" / "repo-baseline"
+        synced.mkdir(parents=True)
+        (synced / "SKILL.md").write_text("editado en claude.ai", encoding="utf-8")
+        env = {**os.environ, "CLAUDE_CONFIG_DIR": str(base), "PYTHONIOENCODING": "cp1252", "PYTHONUTF8": "0"}
+        r = subprocess.run([sys.executable, str(ROOT / "tools" / "drift.py")],
+                           capture_output=True, env=env)
+        self.assertNotIn(b"UnicodeEncodeError", r.stderr, r.stderr[-300:])
+        self.assertEqual(r.returncode, 1, r.stderr[-300:])
 
 
 if __name__ == "__main__":

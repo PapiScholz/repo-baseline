@@ -29,6 +29,9 @@ def installed_copies(base: Path):
 
 
 def main() -> int:
+    # La consola de Windows por defecto es cp1252: sin esto, imprimir "→" o acentos crashea.
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8")
     base = Path(os.environ.get("CLAUDE_CONFIG_DIR") or Path.home() / ".claude")
     ref = digest(REPO_SKILL)
     copies = installed_copies(base)

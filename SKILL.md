@@ -1,6 +1,6 @@
 ---
 name: "repo-baseline"
-description: "Deja repos, sitios o software nuevos con su documentación mínima adaptada al proyecto (README, ARCHITECTURE, ADRs, DESIGN, ROADMAP con el norte del producto, legales AR, SECURITY, LICENSE, .gitignore/.gitattributes/.editorconfig y, en repos públicos u open source, CONTRIBUTING, CODE_OF_CONDUCT, plantillas de issues y PRs y CHANGELOG) y verifica qué falta."
+description: "Deja repos, sitios o software nuevos con su documentación mínima adaptada al proyecto (README, ARCHITECTURE, ADRs, DESIGN, ROADMAP con el norte del producto, legales AR, cookies y rastreo según la plataforma (web, móvil, escritorio, CLI), SECURITY, LICENSE, .gitignore/.gitattributes/.editorconfig y, en repos públicos u open source, CONTRIBUTING, CODE_OF_CONDUCT, plantillas de issues y PRs y CHANGELOG) y verifica qué falta."
 ---
 
 # repo-baseline
@@ -21,6 +21,11 @@ Objetivo: que todo repo nazca con un set mínimo de documentación **escrita par
 | `PRIVACY.md` | Si maneja datos personales | Según la jurisdicción |
 | `TERMS.md` | Si hay usuarios finales o venta | Según la jurisdicción |
 | Botón de arrepentimiento | Si vende online en Argentina | Requisito de UI, no solo de docs |
+| `COOKIES.md` | Si es **web** y usa rastreadores no esenciales (GA/GTM, Meta Pixel, Hotjar, Clarity, PostHog, Mixpanel…) | Tabla de cookies y SDKs con proveedor, finalidad, duración y tipo; cómo cambiar el consentimiento |
+| Consentimiento de cookies (UI) | Web con rastreadores. Obligatorio con usuarios en UE/UK; si no, `recomendado` | Requisito de UI: banner previo a cargar los rastreadores, rechazar tan fácil como aceptar |
+| Sección de rastreo en `PRIVACY.md` | App **móvil**, de **escritorio** o **CLI** con SDKs de analytics, publicidad o telemetría | SDK, dato, finalidad y cómo desactivarlo |
+| ATT (iOS) | App móvil con un SDK que lee el IDFA (AppsFlyer, Adjust, Branch, Meta, AdMob) | `NSUserTrackingUsageDescription`: lo exige la App Store en cualquier jurisdicción |
+| Opt-out de telemetría | Escritorio o CLI con telemetría | Flag o env var (`DO_NOT_TRACK`) documentada en PRIVACY |
 | `SECURITY.md` | Siempre | Cómo reportar, qué datos se manejan, secretos y su rotación |
 | `LICENSE.md` | Siempre | Según el titular. Default: propietario, "All rights reserved". Si es público u open source: la licencia OSI que elija el usuario, con su texto oficial completo |
 | `.gitignore` | Siempre | Del stack real detectado |
@@ -62,6 +67,7 @@ Candidatas, incluidas solo si no se pudieron inferir:
 - **¿Maneja datos personales?** Formularios, cuentas, newsletter, analytics con identificadores, etc.
 - **¿El diseño UX/UI está definido?** Si no, DESIGN.md queda como pendiente.
 - **¿Está definido el norte del producto?** Si sí, pedí el norte en una o dos frases y los pasos para llegar. Si no, ROADMAP.md queda como pendiente. Esta se pregunta siempre: el norte no se puede leer del repo.
+- **¿Tiene usuarios en la UE o el Reino Unido?** Solo si el check encontró rastreadores en una plataforma web (`assumed.platforms` incluye `web` y `assumed.trackers` no está vacío). Define si el banner de consentimiento es obligatorio o recomendado.
 - **¿Dónde se despliega?** Solo si no hay config de deploy en el repo.
 - **¿Es público u open source?** Define los archivos de comunidad (CONTRIBUTING, CODE_OF_CONDUCT, plantillas) y la licencia. Se infiere de una licencia OSI en `LICENSE` (el check lo reporta como `assumed.public`) o de `gh repo view --json visibility`; si no hay ninguna de las dos, se pregunta.
 
@@ -88,6 +94,7 @@ Reglas que importan, con su porqué:
 - **Textos normativos de terceros, descargados.** El Code of Conduct (y cualquier licencia OSI) se baja de su fuente oficial y se copia tal cual; solo se completan sus placeholders (por ejemplo `[INSERT CONTACT METHOD]`). No se reconstruye de memoria ni se traduce: si hace falta otro idioma y no hay traducción oficial a mano, el archivo en ese idioma resume y enlaza al texto que rige. Ver Apéndice C.
 - **Los chequeos de CONTRIBUTING y de la plantilla de PR son los reales.** Salen del CI y de los scripts del repo; un comando que no existe en el repo no va.
 - **Botón de arrepentimiento:** además de documentarlo en TERMS.md, buscá en el código si ya existe (el check lo reporta). Si no existe, agregá una fila "pendiente de implementación en UI" en la tabla final con los requisitos del Apéndice A. No lo implementes salvo que el usuario lo pida: es código de producto, no documentación.
+- **Cookies y rastreo dependen de la plataforma, no de "si es web".** El check informa `assumed.platforms` (`web`, `mobile`, `desktop`, `cli`) y `assumed.trackers`, y exige lo que corresponde a esa combinación: web → `COOKIES.md` y banner; móvil → sección en PRIVACY y ATT si hay IDFA; escritorio o CLI → sección en PRIVACY y opt-out. La tabla de `COOKIES.md` y la sección de PRIVACY se arman con los rastreadores detectados; la duración de cada cookie sale de la doc del proveedor, y si no la podés verificar va `TODO: duración`. La analítica sin cookies (Plausible, Fathom, Vercel Analytics, Cloudflare Web Analytics) solo se declara en PRIVACY. El banner, el opt-out y el prompt de ATT son código de producto: igual que el botón de arrepentimiento, quedan como "pendiente de implementación" y no se implementan salvo pedido.
 
 ### 5. Archivos que ya existen: diff, nunca sobrescribir
 
@@ -100,7 +107,7 @@ Si un archivo del baseline ya existe, no lo pises. Leelo, armá la versión mejo
 Corré el check de nuevo, ahora en modo tabla, con los flags que correspondan según las respuestas:
 
 ```bash
-python <tmp>/check_baseline.py <repo> --[no-]sells-online --[no-]personal-data --[no-]ui-defined --[no-]roadmap-defined --[no-]public --jurisdiction AR
+python <tmp>/check_baseline.py <repo> --[no-]sells-online --[no-]personal-data --[no-]ui-defined --[no-]roadmap-defined --[no-]public --[no-]eu-users --jurisdiction AR
 ```
 
 Pasá siempre las respuestas confirmadas como flags, incluidas las negativas. Sin flags, el script adivina a partir de señales del código (por ejemplo, una integración con WooCommerce parece venta online aunque no lo sea), y esa adivinanza no debe pisar lo que dijo el usuario.
@@ -123,7 +130,7 @@ Terminá **siempre** con esta tabla, una fila por archivo del baseline:
 | CODE_OF_CONDUCT.md | creado | Confirmar el contacto para reportes |
 | Reporte privado de vulnerabilidades | pendiente | Activarlo: Settings → Security → Private vulnerability reporting, o `gh api -X PUT repos/<owner>/<repo>/private-vulnerability-reporting` |
 
-Estados válidos: `creado`, `actualizado`, `diff propuesto`, `pendiente`, `no aplica`.
+Estados válidos: `creado`, `actualizado`, `diff propuesto`, `pendiente`, `recomendado`, `no aplica`.
 
 Debajo, la lista consolidada de **todos** los `TODO-LEGAL` con archivo y dato, para que el usuario se los pase de una al contador o al cliente.
 
@@ -155,6 +162,8 @@ Esto no es asesoramiento legal: los documentos generados son borradores para que
 | AAIP (Agencia de Acceso a la Información Pública) | Autoridad de control de datos personales | Confirmar al redactar |
 
 **No cites la Res. SCI 424/2020 como vigente.** Si un repo existente la cita, proponé el cambio en el diff.
+
+**Cookies en Argentina:** ninguna norma vigente exige un banner de consentimiento. Las cookies y la analítica se declaran en PRIVACY.md (art. 6 de la Ley 25.326: qué datos, finalidad y destinatarios). Si el sitio tiene usuarios en la UE o el Reino Unido, se suman los requisitos del Apéndice B.
 
 ### Botón de arrepentimiento (si vende online)
 
@@ -215,6 +224,14 @@ TERMS.md: objeto, uso aceptable, propiedad intelectual, limitación de responsab
 
 Agregá arriba de cada documento: `> Borrador generado sin jurisdicción definida. Revisar con un abogado antes de publicar.`
 
+### Cookies y rastreo con usuarios en la UE o el Reino Unido
+
+Aplica aunque la jurisdicción del titular sea otra. Confirmá su vigencia antes de citarlas, como las demás:
+
+- UE: Directiva 2002/58/CE (ePrivacy), art. 5(3). Guardar o leer información en el dispositivo requiere consentimiento previo, salvo que sea estrictamente necesario para el servicio. Abarca cookies, localStorage, SDKs móviles y fingerprinting. El consentimiento sigue el GDPR (art. 4(11) y art. 7): libre, específico, informado, sin casillas premarcadas, tan fácil de retirar como de dar.
+- Reino Unido: PECR, reg. 6, con el mismo esquema. La Data (Use and Access) Act 2025 sumó excepciones para analítica de bajo riesgo: verificar su entrada en vigor antes de apoyarse en ellas.
+- Requisitos del banner: los rastreadores no cargan antes de aceptar; "Rechazar" visible en la primera capa, al mismo nivel que "Aceptar"; nada de muros de cookies; una forma de cambiar la elección después (link en el footer).
+
 ---
 
 ## Apéndice C — Esqueletos de los documentos
@@ -238,6 +255,7 @@ Son estructuras, no texto para copiar. Cada sección se llena con datos del repo
 14. Plantillas de issues y PRs
 15. CHANGELOG.md
 16. CODEOWNERS
+17. COOKIES.md y sección de rastreo en PRIVACY.md
 
 ---
 
@@ -266,7 +284,7 @@ Son estructuras, no texto para copiar. Cada sección se llena con datos del repo
 - [Diseño](DESIGN.md) — o "Pendiente: el diseño UX/UI todavía no está definido"
 - [Roadmap](ROADMAP.md) — o "Roadmap pendiente: el norte del producto todavía no está definido"
 - [Seguridad](SECURITY.md)
-- [Privacidad](PRIVACY.md) · [Términos](TERMS.md)  ← solo si existen
+- [Privacidad](PRIVACY.md) · [Términos](TERMS.md) · [Cookies](COOKIES.md)  ← solo si existen
 - [Licencia](LICENSE.md)
 ```
 
@@ -586,6 +604,47 @@ y el proyecto usa [Semantic Versioning](https://semver.org/lang/es/).
 
 Solo con más de un mantenedor; con uno solo no agrega nada. Va en `.github/CODEOWNERS`, con usuarios o equipos reales (`* @owner`, `/infra/ @team-infra`). Los nombres de usuario no se inventan: si no los dio el usuario, no se crea el archivo.
 
+### 17. COOKIES.md y sección de rastreo en PRIVACY.md
+
+Cuál de los dos corresponde lo decide la plataforma (paso 4). Las filas salen de `assumed.trackers` y del código: una por cookie o SDK real, nunca un catálogo genérico.
+
+COOKIES.md (web):
+
+```markdown
+# Política de cookies
+
+Última actualización: <YYYY-MM-DD>
+
+## Qué son
+Una o dos frases: archivos o identificadores que el sitio guarda en tu navegador.
+
+## Qué usamos
+| Nombre | Proveedor | Finalidad | Duración | Tipo |
+|---|---|---|---|---|
+| `_ga`, `_ga_<ID>` | Google Analytics | Medir visitas | 2 años | Analítica |
+| `<sesión>` | Propia | Mantener la sesión iniciada | Sesión | Esencial |
+
+Las esenciales no necesitan consentimiento; las demás solo se cargan si las aceptás.
+
+## Cómo cambiar tu elección
+Dónde está el link para reabrir el panel (por ejemplo, el footer) y cómo borrar las cookies desde el navegador.
+
+## Más información
+[Política de privacidad](PRIVACY.md) · contacto: TODO-LEGAL: email de contacto
+```
+
+Sección en PRIVACY.md (móvil, escritorio o CLI):
+
+```markdown
+## Rastreo y telemetría
+
+| SDK | Qué dato envía | Para qué | Cómo desactivarlo |
+|---|---|---|---|
+| PostHog | Eventos de uso anónimos, versión, SO | Priorizar mejoras | `DO_NOT_TRACK=1` o Ajustes → Privacidad |
+```
+
+En iOS, si un SDK lee el IDFA, la fila aclara que se pide permiso con el diálogo de App Tracking Transparency y que sin ese permiso no se usa.
+
 ---
 
 ## Apéndice D — check_baseline.py
@@ -598,7 +657,8 @@ Solo usa la biblioteca estándar de Python 3.9+, así que corre igual en Windows
 
 Usage:
     python check_baseline.py [REPO] [--json] [--[no-]sells-online] [--[no-]personal-data]
-                             [--[no-]ui-defined] [--[no-]roadmap-defined] [--jurisdiction AR|OTHER|GENERIC]
+                             [--[no-]ui-defined] [--[no-]roadmap-defined] [--[no-]public]
+                             [--[no-]eu-users] [--jurisdiction AR|EU|UK|OTHER|GENERIC]
 
 Without flags, sells-online / personal-data are guessed from code signals. Pass the
 user's confirmed answers as flags so the verdict reflects reality, not the guess.
@@ -617,9 +677,10 @@ from pathlib import Path
 
 SKIP_DIRS = {".git", "node_modules", ".venv", "venv", "__pycache__", "dist", "build",
              ".next", ".nuxt", "vendor", ".terraform", "bin", "obj", ".wrangler", ".vercel",
-             "coverage", ".cache", "target"}
+             "coverage", ".cache", "target", "Pods", "graphify-out"}
 TEXT_EXT = {".md", ".txt", ".js", ".jsx", ".ts", ".tsx", ".vue", ".svelte", ".astro",
-            ".html", ".php", ".py", ".json", ".yml", ".yaml", ".toml", ".cs", ".go", ".rb"}
+            ".html", ".php", ".py", ".json", ".yml", ".yaml", ".toml", ".cs", ".go", ".rb",
+            ".dart", ".kt", ".kts", ".gradle", ".swift", ".plist", ".xml"}
 MAX_FILES = 5000
 MIN_CONTENT_BYTES = 200  # files smaller than this are flagged as "casi vacío"
 
@@ -630,10 +691,32 @@ SIGNALS = {
              "auth0", "django.contrib.auth", "flask-login", "lucia", "jsonwebtoken"],
     "forms": ["<form", "react-hook-form", "formik", "formspree", "resend", "nodemailer",
               "sendgrid"],
-    "analytics": ["gtag(", "googletagmanager", "google-analytics", "@vercel/analytics",
-                  "posthog", "mixpanel", "hotjar", "plausible", "fbq("],
+    # Store or read identifiers on the user's device for non-essential purposes (ePrivacy art. 5(3)).
+    "trackers": ["gtag(", "googletagmanager", "google-analytics", "react-ga", "@next/third-parties/google",
+                 "fbq(", "connect.facebook.net", "hotjar", "clarity.ms", "analytics.tiktok.com",
+                 "snap.licdn.com", "posthog", "mixpanel", "amplitude", "@segment/", "analytics-node",
+                 "@aptabase", "electron-google-analytics", "universal-analytics", "applicationinsights",
+                 "firebase/analytics", "@react-native-firebase/analytics", "firebase_analytics",
+                 "firebase-analytics", "appsflyer", "react-native-adjust", "com.adjust.sdk", "adjust_sdk",
+                 "react-native-branch", "io.branch", "react-native-fbsdk", "facebook_app_events",
+                 "com.facebook.android", "google-mobile-ads", "google_mobile_ads", "play-services-ads"],
+    # Analytics without cookies or device identifiers: declared in PRIVACY, no consent banner.
+    "cookieless": ["plausible", "usefathom", "@vercel/analytics", "cloudflareinsights", "umami",
+                   "simpleanalytics", "goatcounter"],
     "ui": [".tsx", ".jsx", ".vue", ".svelte", ".astro", ".html", "tailwind.config"],
 }
+# Signals that docs would trigger just by describing them (a PRIVACY.md that names PostHog).
+CODE_ONLY_SIGNALS = {"trackers", "cookieless"}
+# Mobile SDKs that read the IDFA: iOS requires the App Tracking Transparency prompt.
+IDFA_SDKS = ["appsflyer", "react-native-adjust", "com.adjust.sdk", "adjust_sdk", "react-native-branch",
+             "io.branch", "react-native-fbsdk", "facebook_app_events", "google-mobile-ads",
+             "google_mobile_ads", "adsupport"]
+CONSENT = re.compile(r"cookieconsent|cookie-consent|klaro|osano|cookiebot|onetrust|consent-manager"
+                     r"|gtag\(\s*['\"]consent", re.I)
+TELEMETRY_OPTOUT = re.compile(r"DO_NOT_TRACK|no-telemetry|TELEMETRY_DISABLED|DISABLE_TELEMETRY"
+                              r"|telemetry\s*[:=]\s*false|opt_?out", re.I)
+ATT_KEY = re.compile(r"NSUserTrackingUsageDescription")
+PRIVACY_TRACKING = re.compile(r"^#+ .*(cookies|rastreo|telemetr|tracking|seguimiento)", re.I | re.M)
 ARREPENTIMIENTO = re.compile(r"arrepentimiento", re.I)
 TODO_LEGAL = re.compile(r"TODO-LEGAL")
 OBSOLETE_NORMS = {"424/2020": "Res. SCI 424/2020 derogada por Disp. SSDCyLC 954/2025",
@@ -669,14 +752,17 @@ def detect_stack(repo: Path) -> list[str]:
             for name, label in [("next", "nextjs"), ("react", "react"), ("vue", "vue"),
                                 ("astro", "astro"), ("svelte", "svelte"), ("vite", "vite"),
                                 ("express", "express"), ("@nestjs/core", "nestjs"),
-                                ("wrangler", "cloudflare-workers"), ("typescript", "typescript")]:
+                                ("wrangler", "cloudflare-workers"), ("typescript", "typescript"),
+                                ("nuxt", "nuxt"), ("electron", "electron"), ("@tauri-apps/api", "tauri"),
+                                ("react-native", "react-native"), ("expo", "expo"),
+                                ("@capacitor/core", "capacitor")]:
                 if name in deps:
                     stack.append(label)
         except json.JSONDecodeError:
             pass
     markers = {
         "python": ["pyproject.toml", "requirements.txt", "setup.py", "Pipfile"],
-        "php": ["composer.json"], "go": ["go.mod"], "rust": ["Cargo.toml"],
+        "php": ["composer.json"], "go": ["go.mod"], "rust": ["Cargo.toml"], "flutter": ["pubspec.yaml"],
         "ruby": ["Gemfile"], "java": ["pom.xml", "build.gradle", "build.gradle.kts"],
         "docker": ["Dockerfile", "docker-compose.yml", "compose.yaml"],
         "vercel": ["vercel.json"], "cloudflare": ["wrangler.toml", "wrangler.jsonc"],
@@ -689,6 +775,8 @@ def detect_stack(repo: Path) -> list[str]:
         stack.append("dotnet")
     if any(repo.glob("*.tf")) or any(repo.glob("infra/**/*.tf")):
         stack.append("terraform")
+    if (repo / "src-tauri").is_dir() and "tauri" not in stack:
+        stack.append("tauri")
     if (repo / "index.html").exists() and "node" not in stack:
         stack.append("static-html")
     if (repo / ".github" / "workflows").is_dir():
@@ -700,6 +788,11 @@ def scan(repo: Path) -> dict:
     signals = {k: [] for k in SIGNALS}
     todo_legal: dict[str, int] = {}
     arrepentimiento_in_code: list[str] = []
+    consent_in_code: list[str] = []
+    optout_in_code: list[str] = []
+    att_declared: list[str] = []
+    idfa_sdks: list[str] = []
+    tracker_names: set[str] = set()
     obsolete: list[dict] = []
     for p in walk(repo):
         rel = p.relative_to(repo).as_posix()
@@ -713,9 +806,12 @@ def scan(repo: Path) -> dict:
         text = read(p)
         # "actions/checkout" (GitHub Actions) is not a payment checkout.
         low = text.lower().replace("actions/checkout", "")
+        is_doc = p.suffix.lower() in {".md", ".txt"}
         for key, needles in SIGNALS.items():
-            if key == "ui":
+            if key == "ui" or (is_doc and key in CODE_ONLY_SIGNALS):
                 continue
+            if key == "trackers":
+                tracker_names.update(n for n in needles if n in low)
             for n in needles:
                 if n in low and len(signals[key]) < 5 and rel not in signals[key]:
                     signals[key].append(rel)
@@ -727,6 +823,15 @@ def scan(repo: Path) -> dict:
             todo_legal[rel] = n_todo
         if p.suffix.lower() != ".md" and ARREPENTIMIENTO.search(text):
             arrepentimiento_in_code.append(rel)
+        if not is_doc:
+            if CONSENT.search(text):
+                consent_in_code.append(rel)
+            if TELEMETRY_OPTOUT.search(text):
+                optout_in_code.append(rel)
+            if ATT_KEY.search(text):
+                att_declared.append(rel)
+            if any(n in low for n in IDFA_SDKS):
+                idfa_sdks.append(rel)
         if p.suffix.lower() == ".md":
             for norm, msg in OBSOLETE_NORMS.items():
                 if norm in text:
@@ -735,7 +840,35 @@ def scan(repo: Path) -> dict:
     return {"signals": {k: v for k, v in signals.items() if v},
             "todo_legal": todo_legal,
             "arrepentimiento_in_code": arrepentimiento_in_code[:10],
+            "consent_in_code": consent_in_code[:10],
+            "telemetry_optout_in_code": optout_in_code[:10],
+            "att_declared": att_declared[:10],
+            "idfa_sdks": idfa_sdks[:10],
+            "tracker_names": sorted(tracker_names),
             "obsolete_norms": obsolete}
+
+
+WEB_STACK = {"nextjs", "nuxt", "astro", "static-html"}
+WEB_DEPLOY = {"vercel", "netlify", "cloudflare", "cloudflare-workers"}
+MOBILE_STACK = {"react-native", "expo", "capacitor", "flutter"}
+DESKTOP_STACK = {"electron", "tauri"}
+
+
+def detect_platforms(repo: Path, stack: list[str], signals: dict) -> list[str]:
+    """Where the product runs on the user's side: web, mobile, desktop or cli. Several at once is valid."""
+    s = set(stack)
+    platforms = []
+    mobile = bool(s & MOBILE_STACK) or ((repo / "android").is_dir() and (repo / "ios").is_dir())
+    desktop = bool(s & DESKTOP_STACK)
+    # Electron and React Native renderers ship Next, .tsx and .html too: in a native app only a
+    # web deploy config proves there is also a public site.
+    if s & WEB_DEPLOY or ((s & WEB_STACK or signals.get("ui")) and not (mobile or desktop)):
+        platforms.append("web")
+    if mobile:
+        platforms.append("mobile")
+    if desktop:
+        platforms.append("desktop")
+    return platforms or ["cli"]
 
 
 def file_state(path: Path) -> str:
@@ -787,8 +920,12 @@ def check(repo: Path, args) -> dict:
     # User answers win; detected signals are only a fallback guess.
     sells = args.sells_online if args.sells_online is not None else bool(sc["signals"].get("payments"))
     personal = args.personal_data if args.personal_data is not None else \
-        any(sc["signals"].get(k) for k in ("auth", "forms", "analytics", "payments"))
+        any(sc["signals"].get(k) for k in ("auth", "forms", "trackers", "cookieless", "payments"))
     jur = (args.jurisdiction or "AR").upper()
+    eu_users = args.eu_users if args.eu_users is not None else jur in {"EU", "UK", "GB"}
+    stack = detect_stack(repo)
+    platforms = detect_platforms(repo, stack, sc["signals"])
+    trackers = sc["signals"].get("trackers", [])
     items = []
 
     def add(name, required, state, note=""):
@@ -842,6 +979,44 @@ def check(repo: Path, args) -> dict:
         found = sc["arrepentimiento_in_code"]
         add("Botón de arrepentimiento (UI)", True, "ok" if found else "falta",
             ", ".join(found[:3]) if found else "Disp. SSDCyLC 954/2025: visible en primer acceso, sin registro, respuesta 24 h con código")
+
+    # Cookies and tracking: what is required depends on where the product runs.
+    seen = ", ".join(sc["tracker_names"][:4]) + (f" (en {', '.join(trackers[:2])})" if trackers else "")
+    web_tracking = "web" in platforms and bool(trackers)
+    add("COOKIES.md", web_tracking, file_state(repo / "COOKIES.md"), seen if web_tracking else "")
+    if "web" in platforms:
+        consent = sc["consent_in_code"]
+        if not trackers:
+            add("Consentimiento de cookies (UI)", False, "falta")
+        elif consent:
+            add("Consentimiento de cookies (UI)", eu_users, "ok", ", ".join(consent[:3]))
+        elif eu_users:
+            add("Consentimiento de cookies (UI)", True, "falta",
+                "usuarios en UE/UK: consentimiento previo, rechazar tan fácil como aceptar")
+        else:
+            add("Consentimiento de cookies (UI)", False, "recomendado",
+                "obligatorio solo con usuarios en UE/UK (--eu-users)")
+    native = [p for p in platforms if p != "web"]
+    if trackers and native:
+        priv = repo / "PRIVACY.md"
+        if not priv.exists():
+            state = "falta"
+        else:
+            state = "ok" if PRIVACY_TRACKING.search(read(priv)) else "incompleto"
+        add("PRIVACY.md § rastreo", True, state,
+            f"{seen}: sección de rastreo/telemetría con SDK, dato, finalidad y cómo desactivarlo")
+    if "mobile" in platforms:
+        android_only = (repo / "android").is_dir() and not (repo / "ios").is_dir() \
+            and not {"expo", "react-native", "capacitor", "flutter"} & set(stack)
+        needs_att = bool(sc["idfa_sdks"]) and not android_only
+        att = sc["att_declared"]
+        add("ATT (iOS)", needs_att, "ok" if att else "falta",
+            ", ".join(att[:3]) if att else
+            ("NSUserTrackingUsageDescription en Info.plist (o ios.infoPlist en app.json)" if needs_att else ""))
+    if trackers and ({"desktop", "cli"} & set(platforms)):
+        optout = sc["telemetry_optout_in_code"]
+        add("Opt-out de telemetría", True, "ok" if optout else "falta",
+            ", ".join(optout[:3]) if optout else "flag o env var (p. ej. DO_NOT_TRACK) para desactivarla")
     add("SECURITY.md", True, file_state(repo / "SECURITY.md"))
     lic = find_one(repo, "LICENSE.md", "LICENSE", "LICENSE.txt")
     add("LICENSE.md", True, file_state(lic) if lic else "falta",
@@ -870,10 +1045,11 @@ def check(repo: Path, args) -> dict:
     add("CHANGELOG.md", versioned, file_state(repo / "CHANGELOG.md"), "publica versiones" if versioned else "")
 
     missing = [i for i in items if i["required"] and i["state"] not in ("ok", "pendiente anotado")]
-    return {"repo": str(repo.resolve()), "stack": detect_stack(repo), "jurisdiction": jur,
+    return {"repo": str(repo.resolve()), "stack": stack, "jurisdiction": jur,
             "assumed": {"sells_online": sells, "personal_data": personal, "ui_defined": args.ui_defined,
                         "roadmap_defined": args.roadmap_defined,
-                        "public": public, "versioned": versioned},
+                        "public": public, "versioned": versioned,
+                        "platforms": platforms, "eu_users": eu_users, "trackers": sc["tracker_names"]},
             "items": items, "missing_count": len(missing), **sc}
 
 
@@ -883,7 +1059,8 @@ def print_table(r: dict) -> None:
     a = r["assumed"]
     print(f"Supuestos: vende online={a['sells_online']} · datos personales={a['personal_data']} · "
           f"UI definida={a['ui_defined']} · norte definido={a['roadmap_defined']} · "
-          f"jurisdicción={r['jurisdiction']}")
+          f"jurisdicción={r['jurisdiction']} · usuarios UE/UK={a['eu_users']}")
+    print(f"Plataformas: {', '.join(a['platforms'])} · rastreadores: {', '.join(a['trackers'][:3]) or 'ninguno'}")
     print()
     w = max(len(i["file"]) for i in r["items"]) + 2
     print(f"{'Archivo'.ljust(w)}{'Req.'.ljust(6)}{'Estado'.ljust(22)}Nota")
@@ -918,6 +1095,9 @@ def main() -> int:
                     help="el norte del producto esta definido: ROADMAP.md pasa a ser requerido")
     ap.add_argument("--public", action=argparse.BooleanOptionalAction, default=None,
                     help="repo publico / open source (--no-public to deny); default: OSI license detected")
+    ap.add_argument("--eu-users", action=argparse.BooleanOptionalAction, default=None,
+                    help="hay usuarios en UE/UK: el consentimiento de cookies pasa a ser requerido; "
+                         "default: solo con --jurisdiction EU o UK")
     ap.add_argument("--jurisdiction", default="AR")
     args = ap.parse_args()
     if hasattr(sys.stdout, "reconfigure"):

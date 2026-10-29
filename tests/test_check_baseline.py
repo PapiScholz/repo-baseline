@@ -151,6 +151,95 @@ class TestCheckBaseline(unittest.TestCase):
         out = json.dumps(self.run_check(repo)).lower()
         self.assertTrue("node" in out or "next" in out, out[:400])
 
+    # --- Cookies y rastreo: lo que se exige depende de la plataforma detectada.
+
+    def make_repo(self, name: str, files: dict) -> Path:
+        repo = self.tmp / name
+        for rel, content in files.items():
+            p = repo / rel
+            p.parent.mkdir(parents=True, exist_ok=True)
+            p.write_text(content, encoding="utf-8")
+        return repo
+
+    GTAG = "<html><script async src=\"https://www.googletagmanager.com/gtag/js\"></script>" \
+           "<script>gtag('config', 'G-X');</script></html>"
+
+    def test_web_trackers_require_cookie_policy_and_consent(self):
+        repo = self.make_repo("ck_web", {"index.html": self.GTAG})
+        report = self.run_check(repo, "--no-public")
+        s = self.states(report)
+        self.assertIn("web", report["assumed"]["platforms"])
+        self.assertEqual(s.get("COOKIES.md"), "falta", s)
+        # Sin usuarios en UE/UK el banner es recomendado y no cuenta como faltante.
+        self.assertEqual(s.get("Consentimiento de cookies (UI)"), "recomendado", s)
+        eu = self.run_check(repo, "--no-public", "--eu-users")
+        self.assertEqual(self.states(eu).get("Consentimiento de cookies (UI)"), "falta")
+        self.assertEqual(eu["missing_count"], report["missing_count"] + 1)
+        self.assertEqual(self.states(self.run_check(repo, "--no-public", "--jurisdiction", "EU"))
+                         .get("Consentimiento de cookies (UI)"), "falta")
+
+    def test_web_consent_library_counts_as_banner(self):
+        repo = self.make_repo("ck_consent", {
+            "index.html": self.GTAG,
+            "package.json": json.dumps({"name": "x", "dependencies": {"vanilla-cookieconsent": "3"}})})
+        s = self.states(self.run_check(repo, "--no-public", "--eu-users"))
+        self.assertEqual(s.get("Consentimiento de cookies (UI)"), "ok", s)
+
+    def test_cookieless_analytics_needs_no_cookie_policy(self):
+        repo = self.make_repo("ck_plausible", {
+            "index.html": "<html><script defer data-domain=\"x.com\" src=\"https://plausible.io/js/script.js\"></script></html>"})
+        report = self.run_check(repo, "--no-public", "--eu-users")
+        s = self.states(report)
+        self.assertEqual(s.get("COOKIES.md"), "no aplica", s)
+        self.assertEqual(s.get("Consentimiento de cookies (UI)"), "no aplica", s)
+        self.assertTrue(report["assumed"]["personal_data"])
+
+    def test_mobile_idfa_sdk_requires_att_key(self):
+        files = {"package.json": json.dumps({"name": "x", "dependencies": {
+                     "expo": "51", "react-native": "0.74", "react-native-appsflyer": "6"}}),
+                 "ios/App/Info.plist": "<plist><dict><key>CFBundleName</key><string>x</string></dict></plist>"}
+        repo = self.make_repo("ck_mobile", files)
+        report = self.run_check(repo, "--no-public")
+        s = self.states(report)
+        self.assertIn("mobile", report["assumed"]["platforms"])
+        self.assertNotIn("web", report["assumed"]["platforms"])
+        self.assertEqual(s.get("ATT (iOS)"), "falta", s)
+        self.assertEqual(s.get("PRIVACY.md § rastreo"), "falta", s)
+        self.assertEqual(s.get("COOKIES.md"), "no aplica", s)
+        (repo / "ios" / "App" / "Info.plist").write_text(
+            "<plist><dict><key>NSUserTrackingUsageDescription</key><string>Para medir campañas.</string></dict></plist>",
+            encoding="utf-8")
+        self.assertEqual(self.states(self.run_check(repo, "--no-public")).get("ATT (iOS)"), "ok")
+
+    def test_desktop_telemetry_requires_optout_and_privacy_section(self):
+        repo = self.make_repo("ck_electron", {
+            "package.json": json.dumps({"name": "x", "dependencies": {"electron": "31", "posthog-node": "4"}}),
+            "PRIVACY.md": "# Privacidad\n\n## Datos\n" + "Qué datos guardamos y para qué. " * 20})
+        report = self.run_check(repo, "--no-public")
+        s = self.states(report)
+        self.assertIn("desktop", report["assumed"]["platforms"])
+        # Next como renderer de Electron no es un sitio: sin config de deploy web, no hay COOKIES.md.
+        nx = self.make_repo("ck_electron_next", {"package.json": json.dumps({"name": "x", "dependencies": {
+            "electron": "31", "next": "15", "posthog-js": "1"}})})
+        self.assertEqual(self.run_check(nx, "--no-public")["assumed"]["platforms"], ["desktop"])
+        (nx / "vercel.json").write_text("{}", encoding="utf-8")
+        self.assertIn("web", self.run_check(nx, "--no-public")["assumed"]["platforms"])
+        self.assertEqual(s.get("Opt-out de telemetría"), "falta", s)
+        self.assertEqual(s.get("PRIVACY.md § rastreo"), "incompleto", s)
+        (repo / "main.js").write_text("if (process.env.DO_NOT_TRACK) telemetry.disable()\n", encoding="utf-8")
+        with (repo / "PRIVACY.md").open("a", encoding="utf-8") as f:
+            f.write("\n## Telemetría\n\nPostHog: eventos de uso anónimos. Se desactiva con DO_NOT_TRACK=1.\n")
+        s = self.states(self.run_check(repo, "--no-public"))
+        self.assertEqual(s.get("Opt-out de telemetría"), "ok", s)
+        self.assertEqual(s.get("PRIVACY.md § rastreo"), "ok", s)
+
+    def test_no_trackers_means_nothing_applies(self):
+        repo = self.make_repo("ck_cli", {"pyproject.toml": "[project]\nname = \"x\"\n"})
+        s = self.states(self.run_check(repo, "--no-public"))
+        for item in ("COOKIES.md", "Consentimiento de cookies (UI)", "ATT (iOS)",
+                     "Opt-out de telemetría", "PRIVACY.md § rastreo"):
+            self.assertIn(s.get(item), ("no aplica", None), (item, s))
+
 
 class TestDrift(unittest.TestCase):
     def run_drift(self, base: Path):

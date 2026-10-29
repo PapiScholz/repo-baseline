@@ -35,6 +35,8 @@ npx skills add PapiScholz/repo-baseline -g      # 1. instalar (una sola vez por 
 | `PRIVACY.md` | Si maneja datos personales |
 | `TERMS.md` | Si hay usuarios finales o venta |
 | Botón de arrepentimiento | Si vende online en Argentina (requisito de UI, no solo de docs) |
+| `COOKIES.md` y chequeo del banner de consentimiento | Si es una web con rastreadores (GA, Meta Pixel, Hotjar…). El banner es obligatorio con usuarios en UE/UK y recomendado si no |
+| Sección de rastreo en `PRIVACY.md`, clave ATT de iOS, opt-out de telemetría | Si es una app móvil, de escritorio o una CLI con SDKs de analytics, publicidad o telemetría. La analítica sin cookies (Plausible, Vercel Analytics) solo se declara en PRIVACY |
 | `SECURITY.md`, `LICENSE.md`, `.gitignore`, `.gitattributes`, `.editorconfig` | Siempre |
 | `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md` (texto oficial del Contributor Covenant), plantillas de issues y PRs | Si el repo es público u open source |
 | `CHANGELOG.md` (Keep a Changelog) | Si publica versiones |
@@ -49,7 +51,7 @@ flowchart TD
     D --> Q{"¿Falta algún dato que<br/>el repo no dice?"}
     Q -->|sí| F["2 · Un solo formulario<br/>titular · jurisdicción · venta online ·<br/>datos personales · diseño definido ·<br/>norte del producto"]
     Q -->|no| L
-    F --> L{"¿Lleva legales?<br/>PRIVACY · TERMS · arrepentimiento"}
+    F --> L{"¿Lleva legales?<br/>PRIVACY · TERMS · COOKIES · arrepentimiento"}
     L -->|sí| N["3 · Verifica la normativa vigente<br/>lo que falte queda TODO-LEGAL"]
     L -->|no| W
     N --> W["4 · Redacta para este proyecto<br/>nada de plantillas vacías"]
@@ -126,6 +128,7 @@ A Claude Code / claude.ai skill that gives any repository its minimum documentat
 - ROADMAP, when the product's north is defined: the north, the steps to get there and a deferred backlog. It is asked, never inferred from code;
 - SECURITY, LICENSE, `.gitignore`, `.gitattributes` and `.editorconfig`;
 - for public / open source repos: CONTRIBUTING, CODE_OF_CONDUCT (the official Contributor Covenant text, downloaded), issue and PR templates; CHANGELOG when the project publishes versions;
-- privacy and terms where they apply. Argentina is the default jurisdiction, always confirmed; a generic template covers others.
+- privacy and terms where they apply. Argentina is the default jurisdiction, always confirmed; a generic template covers others;
+- cookies and tracking by platform, not just for websites: a cookie policy and consent banner check for websites with trackers (required with EU/UK users, recommended otherwise), a tracking section in PRIVACY plus the iOS ATT key for mobile SDKs, and a telemetry opt-out for desktop apps and CLIs.
 
 **Quick start:** `npx skills add PapiScholz/repo-baseline -g`, then ask Claude to "set up the baseline for this repo". It reads the repo before asking anything, asks the rest in a single form, never overwrites existing files (it proposes diffs) and ends with a status table. The skill text is in Spanish. The flow is in the diagram above.

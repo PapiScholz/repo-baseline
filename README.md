@@ -31,6 +31,7 @@ npx skills add PapiScholz/repo-baseline -g      # 1. instalar (una sola vez por 
 | `ARCHITECTURE.md` | Siempre |
 | `docs/adr/0000-template.md` + `0001-<decisión>.md` | Siempre |
 | `DESIGN.md` (formato google-labs-code/design.md) | Si el diseño UX/UI está definido; si no, queda anotado como pendiente en el README |
+| `ROADMAP.md` (norte del producto, pasos para llegar y backlog diferido) | Si definiste el norte del producto; si no, queda anotado como pendiente en el README. Nunca se infiere del código |
 | `PRIVACY.md` | Si maneja datos personales |
 | `TERMS.md` | Si hay usuarios finales o venta |
 | Botón de arrepentimiento | Si vende online en Argentina (requisito de UI, no solo de docs) |
@@ -46,7 +47,7 @@ npx skills add PapiScholz/repo-baseline -g      # 1. instalar (una sola vez por 
 flowchart TD
     U["Pedís: armá el baseline de este repo"] --> D["1 · Detecta<br/>check_baseline.py + package.json,<br/>deploy, CI, README, git remote"]
     D --> Q{"¿Falta algún dato que<br/>el repo no dice?"}
-    Q -->|sí| F["2 · Un solo formulario<br/>titular · jurisdicción · venta online ·<br/>datos personales · diseño definido"]
+    Q -->|sí| F["2 · Un solo formulario<br/>titular · jurisdicción · venta online ·<br/>datos personales · diseño definido ·<br/>norte del producto"]
     Q -->|no| L
     F --> L{"¿Lleva legales?<br/>PRIVACY · TERMS · arrepentimiento"}
     L -->|sí| N["3 · Verifica la normativa vigente<br/>lo que falte queda TODO-LEGAL"]
@@ -70,7 +71,8 @@ flowchart TD
    - la jurisdicción (Argentina por defecto, pero siempre se confirma);
    - si vende online;
    - si maneja datos personales;
-   - si el diseño está definido.
+   - si el diseño está definido;
+   - el norte del producto y los pasos para llegar, si ya están definidos. Esto se pregunta siempre, porque no se puede leer del repo.
 
    Si una señal ya responde algo, como `mercadopago` en las dependencias, lo ofrece preseleccionado.
 3. **Verifica la normativa vigente** antes de escribir legales. Los datos del titular que exige la ley y no le diste quedan marcados `TODO-LEGAL`.
@@ -121,6 +123,7 @@ A Claude Code / claude.ai skill that gives any repository its minimum documentat
 
 - README, ARCHITECTURE and ADRs;
 - DESIGN, when the UI is defined;
+- ROADMAP, when the product's north is defined: the north, the steps to get there and a deferred backlog. It is asked, never inferred from code;
 - SECURITY, LICENSE, `.gitignore`, `.gitattributes` and `.editorconfig`;
 - for public / open source repos: CONTRIBUTING, CODE_OF_CONDUCT (the official Contributor Covenant text, downloaded), issue and PR templates; CHANGELOG when the project publishes versions;
 - privacy and terms where they apply. Argentina is the default jurisdiction, always confirmed; a generic template covers others.

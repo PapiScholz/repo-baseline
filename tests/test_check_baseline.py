@@ -99,6 +99,35 @@ class TestCheckBaseline(unittest.TestCase):
         self.assertEqual(self.states(self.run_check(plain, "--no-public")).get("CHANGELOG.md"), "no aplica")
         self.assertEqual(self.states(self.run_check(versioned, "--no-public")).get("CHANGELOG.md"), "falta")
 
+    def test_roadmap_pending_until_north_defined(self):
+        bare = self.tmp / "rm_bare"
+        bare.mkdir()
+        report = self.run_check(bare, "--no-public")
+        self.assertEqual(self.states(report).get("ROADMAP.md"), "pendiente sin anotar")
+        noted = self.tmp / "rm_noted"
+        noted.mkdir()
+        (noted / "README.md").write_text("# x\n\nRoadmap: pendiente, el norte no está definido.\n", encoding="utf-8")
+        self.assertEqual(self.states(self.run_check(noted, "--no-public")).get("ROADMAP.md"), "pendiente anotado")
+        # Pending (noted or not) never counts as missing: only the north being defined makes it required.
+        defined = self.run_check(bare, "--no-public", "--roadmap-defined")
+        self.assertEqual(defined["missing_count"], report["missing_count"] + 1)
+
+    def test_roadmap_missing_when_north_defined(self):
+        repo = self.tmp / "rm_def"
+        repo.mkdir()
+        self.assertEqual(self.states(self.run_check(repo, "--no-public", "--roadmap-defined")).get("ROADMAP.md"), "falta")
+        (repo / "ROADMAP.md").write_text("# Roadmap\n\n## Norte\n" + "Qué es el producto terminado. " * 20, encoding="utf-8")
+        self.assertEqual(self.states(self.run_check(repo, "--no-public", "--roadmap-defined")).get("ROADMAP.md"), "ok")
+        self.assertEqual(self.states(self.run_check(repo, "--no-public")).get("ROADMAP.md"), "ok")
+
+    def test_roadmap_note_links_staged_plan(self):
+        repo = self.tmp / "rm_plan"
+        (repo / "docs" / "specs" / "c1").mkdir(parents=True)
+        (repo / "docs" / "specs" / "c1" / "plan.md").write_text("# Plan\n", encoding="utf-8")
+        item = next(i for i in self.run_check(repo, "--no-public", "--roadmap-defined")["items"]
+                    if i["file"] == "ROADMAP.md")
+        self.assertIn("docs/specs/c1/plan.md", item["note"])
+
     def test_github_actions_checkout_is_not_a_payment_signal(self):
         repo = self.tmp / "ci"
         (repo / ".github" / "workflows").mkdir(parents=True)

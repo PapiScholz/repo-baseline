@@ -1,6 +1,6 @@
 ---
 name: "repo-baseline"
-description: "Deja repos, sitios o software nuevos con su documentación mínima adaptada al proyecto (README, ARCHITECTURE, ADRs, DESIGN, legales AR, SECURITY, LICENSE, .gitignore/.gitattributes/.editorconfig y, en repos públicos u open source, CONTRIBUTING, CODE_OF_CONDUCT, plantillas de issues y PRs y CHANGELOG) y verifica qué falta."
+description: "Deja repos, sitios o software nuevos con su documentación mínima adaptada al proyecto (README, ARCHITECTURE, ADRs, DESIGN, ROADMAP con el norte del producto, legales AR, SECURITY, LICENSE, .gitignore/.gitattributes/.editorconfig y, en repos públicos u open source, CONTRIBUTING, CODE_OF_CONDUCT, plantillas de issues y PRs y CHANGELOG) y verifica qué falta."
 ---
 
 # repo-baseline
@@ -17,6 +17,7 @@ Objetivo: que todo repo nazca con un set mínimo de documentación **escrita par
 | `docs/adr/0000-template.md` | Siempre | Plantilla de ADR |
 | `docs/adr/0001-<decision>.md` | Siempre | Primera decisión real (normalmente el stack) |
 | `DESIGN.md` | Solo si el diseño UX/UI está definido | Formato google-labs-code/design.md. Si no está definido, anotar el pendiente en el README |
+| `ROADMAP.md` | Si el norte del producto está definido | El norte del producto, los pasos para llegar con su estado y el `## Deferred Backlog`. No es una lista de tareas. Si el norte no está definido, anotar el pendiente en el README |
 | `PRIVACY.md` | Si maneja datos personales | Según la jurisdicción |
 | `TERMS.md` | Si hay usuarios finales o venta | Según la jurisdicción |
 | Botón de arrepentimiento | Si vende online en Argentina | Requisito de UI, no solo de docs |
@@ -60,6 +61,7 @@ Candidatas, incluidas solo si no se pudieron inferir:
 - **¿Vende online?** Si la respuesta es sí y la jurisdicción es Argentina, aplica el botón de arrepentimiento.
 - **¿Maneja datos personales?** Formularios, cuentas, newsletter, analytics con identificadores, etc.
 - **¿El diseño UX/UI está definido?** Si no, DESIGN.md queda como pendiente.
+- **¿Está definido el norte del producto?** Si sí, pedí el norte en una o dos frases y los pasos para llegar. Si no, ROADMAP.md queda como pendiente. Esta se pregunta siempre: el norte no se puede leer del repo.
 - **¿Dónde se despliega?** Solo si no hay config de deploy en el repo.
 - **¿Es público u open source?** Define los archivos de comunidad (CONTRIBUTING, CODE_OF_CONDUCT, plantillas) y la licencia. Se infiere de una licencia OSI en `LICENSE` (el check lo reporta como `assumed.public`) o de `gh repo view --json visibility`; si no hay ninguna de las dos, se pregunta.
 
@@ -80,6 +82,7 @@ Reglas que importan, con su porqué:
 - **Contenido real, no relleno.** Cada sección se escribe con lo que dice el repo: comandos reales de `scripts` en package.json, variables reales de `.env.example` y carpetas reales. Si de verdad falta un dato técnico, poné `TODO: <qué falta y dónde averiguarlo>`.
 - **Nunca inventes datos legales.** Razón social, CUIT, domicilio, email legal, nombre del responsable, número de registro de base de datos, tribunales competentes: todo eso va como marcador visible `TODO-LEGAL: <dato>`. Un CUIT inventado en unos términos publicados es peor que un hueco visible, porque nadie lo va a revisar.
 - **Las decisiones no se fabrican.** En el ADR 0001, el contexto y la decisión salen de la evidencia del repo. Si el usuario no dio las alternativas descartadas, podés proponer las obvias, pero marcalas `(sugerido — confirmar)` para que no pasen por hechos.
+- **El norte no se fabrica.** El norte y los pasos de ROADMAP.md salen de lo que dijo el usuario, nunca de TODOs ni de la estructura del código. Lo único que sí sale del repo es el estado de cada paso (`hecho`, `en curso`, `pendiente`). Si hay un plan por etapas (`docs/specs/*/plan.md`), el paso enlaza a ese plan en lugar de copiar sus tareas.
 - **Fuentes en los ADRs:** links a la documentación oficial de las tecnologías elegidas. Solo URLs que existan; si no podés verificar una, no la pongas.
 - **Idioma:** el que use el usuario o el del README existente. Los nombres de archivo van en inglés y mayúsculas, como en la tabla.
 - **Textos normativos de terceros, descargados.** El Code of Conduct (y cualquier licencia OSI) se baja de su fuente oficial y se copia tal cual; solo se completan sus placeholders (por ejemplo `[INSERT CONTACT METHOD]`). No se reconstruye de memoria ni se traduce: si hace falta otro idioma y no hay traducción oficial a mano, el archivo en ese idioma resume y enlaza al texto que rige. Ver Apéndice C.
@@ -97,7 +100,7 @@ Si un archivo del baseline ya existe, no lo pises. Leelo, armá la versión mejo
 Corré el check de nuevo, ahora en modo tabla, con los flags que correspondan según las respuestas:
 
 ```bash
-python <tmp>/check_baseline.py <repo> --[no-]sells-online --[no-]personal-data --[no-]ui-defined --[no-]public --jurisdiction AR
+python <tmp>/check_baseline.py <repo> --[no-]sells-online --[no-]personal-data --[no-]ui-defined --[no-]roadmap-defined --[no-]public --jurisdiction AR
 ```
 
 Pasá siempre las respuestas confirmadas como flags, incluidas las negativas. Sin flags, el script adivina a partir de señales del código (por ejemplo, una integración con WooCommerce parece venta online aunque no lo sea), y esa adivinanza no debe pisar lo que dijo el usuario.
@@ -116,6 +119,7 @@ Terminá **siempre** con esta tabla, una fila por archivo del baseline:
 | LICENSE.md | creado | TODO-LEGAL: razón social del titular |
 | PRIVACY.md | diff propuesto | Esperando OK |
 | DESIGN.md | pendiente | Diseño UX/UI no definido; anotado en README |
+| ROADMAP.md | pendiente | Norte del producto no definido; anotado en README |
 | CODE_OF_CONDUCT.md | creado | Confirmar el contacto para reportes |
 | Reporte privado de vulnerabilidades | pendiente | Activarlo: Settings → Security → Private vulnerability reporting, o `gh api -X PUT repos/<owner>/<repo>/private-vulnerability-reporting` |
 
@@ -223,16 +227,17 @@ Son estructuras, no texto para copiar. Cada sección se llena con datos del repo
 3. ARCHITECTURE.md
 4. ADR (template y 0001)
 5. DESIGN.md
-6. SECURITY.md
-7. LICENSE.md
-8. .gitignore
-9. .gitattributes
-10. .editorconfig
-11. CONTRIBUTING.md
-12. CODE_OF_CONDUCT.md
-13. Plantillas de issues y PRs
-14. CHANGELOG.md
-15. CODEOWNERS
+6. ROADMAP.md
+7. SECURITY.md
+8. LICENSE.md
+9. .gitignore
+10. .gitattributes
+11. .editorconfig
+12. CONTRIBUTING.md
+13. CODE_OF_CONDUCT.md
+14. Plantillas de issues y PRs
+15. CHANGELOG.md
+16. CODEOWNERS
 
 ---
 
@@ -259,6 +264,7 @@ Son estructuras, no texto para copiar. Cada sección se llena con datos del repo
 - [Arquitectura](ARCHITECTURE.md)
 - [Decisiones (ADRs)](docs/adr/)
 - [Diseño](DESIGN.md) — o "Pendiente: el diseño UX/UI todavía no está definido"
+- [Roadmap](ROADMAP.md) — o "Roadmap pendiente: el norte del producto todavía no está definido"
 - [Seguridad](SECURITY.md)
 - [Privacidad](PRIVACY.md) · [Términos](TERMS.md)  ← solo si existen
 - [Licencia](LICENSE.md)
@@ -360,7 +366,28 @@ components:
 
 Las secciones pueden omitirse, pero las que aparecen tienen que respetar este orden y no pueden duplicarse. Si los tokens salen de `tailwind.config` o de variables CSS del repo, usá esos valores.
 
-### 6. SECURITY.md
+### 6. ROADMAP.md
+
+Solo cuando el usuario definió el norte del producto. Marca hacia dónde va el producto y el camino para llegar; no es una lista de tareas ni un changelog. Las tareas viven en el plan de cada paso y las versiones publicadas, en CHANGELOG.md. Si el norte no está definido, no se crea: se anota el pendiente en el README.
+
+```markdown
+# Roadmap
+
+## Norte
+<qué es el producto cuando está terminado y para quién, en una o dos frases, con las palabras del usuario>
+
+## Pasos
+1. <hito> — hecho. Plan: [docs/specs/<ciclo>/plan.md](docs/specs/<ciclo>/plan.md)
+2. <hito> — en curso
+3. <hito> — pendiente
+
+## Deferred Backlog
+- <lo que se posterga a propósito y por qué>
+```
+
+Los pasos y su orden los da el usuario. El estado (`hecho`, `en curso`, `pendiente`) sale de la evidencia del repo. Si existe `docs/specs/*/plan.md`, cada paso enlaza a su plan en vez de copiar el detalle. `## Deferred Backlog` se omite si no hay nada postergado.
+
+### 7. SECURITY.md
 
 ```markdown
 # Seguridad
@@ -385,7 +412,7 @@ No abrir issues públicos con vulnerabilidades.
 <cómo se actualizan: Dependabot o Renovate, o TODO>
 ```
 
-### 7. LICENSE.md
+### 8. LICENSE.md
 
 Default (sin otra indicación del usuario), propietario:
 
@@ -399,7 +426,7 @@ Este software y su documentación son propiedad exclusiva del titular. Queda pro
 
 Si el titular es el cliente, pero la agencia desarrolla, agregá una nota sobre la cesión de derechos según el contrato (`TODO-LEGAL: referencia al contrato`). Si el usuario elige una licencia open source, usá el texto oficial completo de esa licencia, no un resumen.
 
-### 8. .gitignore
+### 9. .gitignore
 
 Del stack detectado, combinando secciones. Siempre incluir:
 
@@ -419,7 +446,7 @@ Thumbs.db
 
 Más lo específico del stack: Node (`node_modules/`, `dist/`, `.next/`, `.vercel/`, `.wrangler/`, `*.log`), Python (`__pycache__/`, `.venv/`, `*.pyc`, `.pytest_cache/`), PHP (`vendor/`), .NET (`bin/`, `obj/`), Terraform (`.terraform/`, `*.tfstate*`, `*.tfvars` salvo ejemplos), etc.
 
-### 9. .gitattributes
+### 10. .gitattributes
 
 ```
 * text=auto eol=lf
@@ -444,7 +471,7 @@ Más lo específico del stack: Node (`node_modules/`, `dist/`, `.next/`, `.verce
 
 Agregá `*.ps1` solo si hay scripts PowerShell; el resto de las extensiones, solo si están en el repo o son típicas del stack.
 
-### 10. .editorconfig
+### 11. .editorconfig
 
 ```ini
 root = true
@@ -463,7 +490,7 @@ trim_trailing_whitespace = false
 
 Ajustá `indent_size` por extensión al estilo real del código (Python 4, Go con tabs, Makefile con tabs). Si `.gitattributes` fija CRLF para alguna extensión, repetilo acá (`end_of_line = crlf`).
 
-### 11. CONTRIBUTING.md
+### 12. CONTRIBUTING.md
 
 ```markdown
 # Contributing
@@ -486,7 +513,7 @@ privado de [SECURITY.md](SECURITY.md), no por issues.
 <convención real de commits del repo (mirá `git log`), un tema por PR, CI en verde>
 ```
 
-### 12. CODE_OF_CONDUCT.md
+### 13. CODE_OF_CONDUCT.md
 
 No se redacta: se descarga el texto oficial del Contributor Covenant (versión vigente; la 2.1 está en `https://raw.githubusercontent.com/EthicalSource/contributor_covenant/release/content/version/2/1/code_of_conduct.md`).
 
@@ -497,7 +524,7 @@ No se redacta: se descarga el texto oficial del Contributor Covenant (versión v
 
 Para otro idioma, enlazá la traducción oficial (`https://www.contributor-covenant.org/translations`) desde un archivo corto en ese idioma, que diga que el texto que rige es el del archivo principal.
 
-### 13. Plantillas de issues y PRs
+### 14. Plantillas de issues y PRs
 
 `.github/ISSUE_TEMPLATE/bug_report.md`:
 
@@ -537,7 +564,7 @@ contact_links:
 - [ ] Actualicé la documentación afectada (y su versión en otro idioma, si existe)
 ```
 
-### 14. CHANGELOG.md
+### 15. CHANGELOG.md
 
 Formato [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/). Las versiones salen de los tags de git o del campo `version`; no inventes fechas ni entradas: si el historial no alcanza para reconstruir versiones viejas, empezá por la actual.
 
@@ -555,7 +582,7 @@ y el proyecto usa [Semantic Versioning](https://semver.org/lang/es/).
 - <lo que agregó esa versión, según los commits o el tag>
 ```
 
-### 15. CODEOWNERS
+### 16. CODEOWNERS
 
 Solo con más de un mantenedor; con uno solo no agrega nada. Va en `.github/CODEOWNERS`, con usuarios o equipos reales (`* @owner`, `/infra/ @team-infra`). Los nombres de usuario no se inventan: si no los dio el usuario, no se crea el archivo.
 
@@ -571,7 +598,7 @@ Solo usa la biblioteca estándar de Python 3.9+, así que corre igual en Windows
 
 Usage:
     python check_baseline.py [REPO] [--json] [--[no-]sells-online] [--[no-]personal-data]
-                             [--[no-]ui-defined] [--jurisdiction AR|OTHER|GENERIC]
+                             [--[no-]ui-defined] [--[no-]roadmap-defined] [--jurisdiction AR|OTHER|GENERIC]
 
 Without flags, sells-online / personal-data are guessed from code signals. Pass the
 user's confirmed answers as flags so the verdict reflects reality, not the guess.
@@ -792,6 +819,21 @@ def check(repo: Path, args) -> dict:
             add("DESIGN.md", False, "pendiente anotado" if noted else "pendiente sin anotar",
                 "" if noted else "Anotar en README que el diseño UX/UI está pendiente")
 
+    # The product's north is never inferred from code: required only once the user says it is defined.
+    roadmap = repo / "ROADMAP.md"
+    plans = sorted(p.relative_to(repo).as_posix() for p in (repo / "docs" / "specs").glob("*/plan.md")) \
+        if (repo / "docs" / "specs").is_dir() else []
+    plan_note = f"enlazar {', '.join(plans[:3])}" if plans else ""
+    if roadmap.exists():
+        add("ROADMAP.md", True, file_state(roadmap), plan_note)
+    elif args.roadmap_defined:
+        add("ROADMAP.md", True, "falta", "; ".join(filter(None, ["Norte definido: corresponde ROADMAP.md", plan_note])))
+    else:
+        readme_txt = read(readme).lower() if readme.exists() else ""
+        noted = "roadmap.md" in readme_txt or ("roadmap" in readme_txt and "pendiente" in readme_txt)
+        add("ROADMAP.md", False, "pendiente anotado" if noted else "pendiente sin anotar",
+            "" if noted else "Anotar en README que el roadmap está pendiente (norte no definido)")
+
     add("PRIVACY.md", personal, file_state(repo / "PRIVACY.md"),
         "maneja datos personales" if personal else "")
     add("TERMS.md", sells or personal, file_state(repo / "TERMS.md"),
@@ -830,6 +872,7 @@ def check(repo: Path, args) -> dict:
     missing = [i for i in items if i["required"] and i["state"] not in ("ok", "pendiente anotado")]
     return {"repo": str(repo.resolve()), "stack": detect_stack(repo), "jurisdiction": jur,
             "assumed": {"sells_online": sells, "personal_data": personal, "ui_defined": args.ui_defined,
+                        "roadmap_defined": args.roadmap_defined,
                         "public": public, "versioned": versioned},
             "items": items, "missing_count": len(missing), **sc}
 
@@ -839,7 +882,8 @@ def print_table(r: dict) -> None:
     print(f"Stack detectado: {', '.join(r['stack']) or 'no detectado'}")
     a = r["assumed"]
     print(f"Supuestos: vende online={a['sells_online']} · datos personales={a['personal_data']} · "
-          f"UI definida={a['ui_defined']} · jurisdicción={r['jurisdiction']}")
+          f"UI definida={a['ui_defined']} · norte definido={a['roadmap_defined']} · "
+          f"jurisdicción={r['jurisdiction']}")
     print()
     w = max(len(i["file"]) for i in r["items"]) + 2
     print(f"{'Archivo'.ljust(w)}{'Req.'.ljust(6)}{'Estado'.ljust(22)}Nota")
@@ -870,6 +914,8 @@ def main() -> int:
     ap.add_argument("--personal-data", action=argparse.BooleanOptionalAction, default=None,
                     help="override detection (--no-personal-data to deny)")
     ap.add_argument("--ui-defined", action=argparse.BooleanOptionalAction, default=False)
+    ap.add_argument("--roadmap-defined", action=argparse.BooleanOptionalAction, default=False,
+                    help="el norte del producto esta definido: ROADMAP.md pasa a ser requerido")
     ap.add_argument("--public", action=argparse.BooleanOptionalAction, default=None,
                     help="repo publico / open source (--no-public to deny); default: OSI license detected")
     ap.add_argument("--jurisdiction", default="AR")
